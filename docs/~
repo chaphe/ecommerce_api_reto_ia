@@ -1,0 +1,261 @@
+# PLAN DE EJECUCIÓN POR BLOQUES - Corrección de Errores E-Commerce API
+
+**Objetivo:** Corregir las vulnerabilidades, ineficiencias, errores de lógica de negocio y violaciones PEP 8 identificadas en el informe de auditoría, garantizando trazabilidad mediante checkpoints, pruebas y posibilidad de rollback. 
+
+**Estado:** Pendiente de ejecución  
+**Fecha de creación:** 2026-11-01  
+**Repositorio:** `ecommerce_api_reto_ia_tricode`
+
+---
+
+## PRINCIPIOS GENERALES
+
+- **Trabajo por bloques**: Cada bloque es autónomo, verificable y revertible.
+- **Checkpoint obligatorio**: Antes y después de cada bloque, se registra el estado (git commit).
+- **Pruebas por bloque**: Se validan cambios con pruebas unitarias/manuales definidas.
+- **Sin cambios masivos**: Un bloque = un conjunto lógico de correcciones coherentes.
+- **Seguridad primero**: Se atienden críticos antes que optimizaciones.
+- **Rollback-ready**: Cada checkpoint permite volver al estado anterior.
+
+---
+
+## BLOQUE 0: PREPARACIÓN Y BASELINE (CRÍTICO - SEGURIDAD)
+
+**Prioridad:** CRÍTICA | **Esfuerzo:** S | **Dependencias:** Ninguna
+
+### Objetivo
+Crear entorno seguro para aplicar correcciones, establecer baseline y estrategia de gestión de secretos.
+
+### Tareas
+| ID | Tarea | Archivo(s) | Detalle |
+|---|---|---|---|
+| 0.1 | Crear rama de trabajo | Git | `git checkout -b fix/security-and-architecture-corrections` |
+| 0.2 | Crear `.env.example` | `.env.example` (nuevo) | Documentar variables: `DATABASE_URL`, `ENVIRONMENT` etc. Sin credenciales reales. |
+| 0.3 | Añadir `.env` a `.gitignore` | `.gitignore` | Asegurar que `.env` no se commitee (verificar estado actual). |
+| 0.4 | Crear `config.py` | `config.py` (nuevo) | Cargar variables de entorno con `pydantic-settings` o `python-dotenv`. |
+| 0.5 | Actualizar `requirements.txt` | `requirements.txt` | Agregar `python-dotenv==1.0.0` (y opcional `pydantic-settings`). |
+| 0.5b | Commit baseline | Git | Commit inicial de preparación: `chore: bloque 0 - preparación y baseline` |
+
+### Pruebas / Verificación
+- [ ] Rama creada correctamente
+- [ ] `.env.example` existe sin credenciales reales
+- ` .gitignore` contiene `.env`
+- [ ] Configuración carga correctamente variables desde entorno
+- [ ] Sin cambios en lógica funcional
+
+### Checkpoint 0
+- **Tag/Commit:** `checkpoint-bloque-0-preparacion`
+- **Rollback:** `git reset --hard HEAD~1` (o volver a main) si falla
+
+---
+
+## BLOQUE 1: SEGURIDAD - CREDENCIALES, VALIDACIÓN Y TRANSACCIONALIDAD (CRÍTICO)
+
+**Prioridad:** CRÍTÍA | **Esfuerzo:** M | **Dependencias:** BLOQUE 0
+
+### Objetivo
+Eliminar credenciales hardcodeadas, mejorar validación de usuarios, asegurar transaccionalidad y mitigar race conditions básicas.
+
+### Tareas
+| ID | Tarea | Archivo(s) | Detalle |
+|---|---|---|---|
+| 1.1 | Migrar conexión a variables de entorno | `database.py` | Usar `DATABASE_URL` desde config/env. Eliminar `root:password123`. |
+| 1.2 | Añadir UNIQUE a email y mejorar modelo User | `models.py` | `email = Column(String(100), unique=True, index=True, nullable=False)`. Añadir índices necesarios. |
+| 1.3 | Validación de usuarios duplicados | `main.py` | Verificar existencia de email antes crear usuario. Retornar HTTP 409 Conflict. |
+| 1.4 | Mejorar schemas con validación | `schemas.py` | Us
+ar `EmailStr` (`pydantic[email])` o validator, `Field(min_length/max_length)`. Añadir `.env` como requisito. |
+| 1.4b | Manejo transaccional en create_user | `main.py` | Añadir `try/except` with `db.rollback()`. |
+| 1.5 | Añ�ad
+ `datetime.timezone.utc` | `models.py` | `created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))`. |
+| 1.6 | Commit bloque 1 | Git | `fix(security): eliminar credenciales hardcodeadas, validar email y transaccionalidad` |
+
+### Pruebas / Verificación
+- [ ] `database.py` ya no contiene credenciales en texto claro
+- [ ] Registro duplicado retorna 409
+- [ ] Registro valido crea usuario correctamente
+- [ ] `create_all` sigue funcionando (sin cambios en esquema con migración futura)
+- [ ] Timezone UTC aplicado
+- [ ] Transacciones con rollback funcionando (prueba manual/falla simulada)
+
+### Checkpoint 1
+- **Tag/Commit:** `checkpoint-bloque-1-seguridad`  
+- **Rollback:** `git revert HEAD` / reset al checkpoint 0
+
+---
+
+## BLOQUE 2: CORRECCIÓN DE LÓGIC}
+### BLOQUE 2: CORRECCIÓN DE LÓGICA DE NEGOCIO - ÓRDENES, STOCK Y DESCUENTOS (CRÍTICO)
+
+**Prioridad:** CRÍTICA | **Esfuerzo:** L | **Dependencias:** BLOQUE 1
+
+### Objetivo
+Corregir diseño incompleto de órdenes (cantidades), validar stock, evitar race conditions, hacer procesamiento atómico y eliminar lógica de descuento no justificada o parametrizada.
+
+### Tareas
+| ID | Tarea | Archivo(s) | Detalle |
+|---|---|---|---|
+| 2.1 | Rediseñar schemas para órdenes con cantidades | `schemas.py` | Crear `OrderItem(BaseModel)` con `product_id: int, quantity: int = 1 (Field(gt=0))`. `OrderCreate` debe tener `items: List[OrderItem]`. Eliminar comentario PROBLEMA. |
+| 2.2 | Modificar lógica de procesamiento de órdenes | `main.py` | Validar usuario. Obtener todos productos con `in_()`, mapear por ID. Validar existencia, validar stock >= quantity, calcular total. Aplicar descuento solo si parametrizado (e.g. env/config) o eliminarlo. Us</xmp>ar `with_for_update()` en lectura crítica. |
+| 2.2b | Transaccionalidad total
+y rollback | `main.py` | Todo el procesamiento dentro de `try/except` con `db.rollback()` y status 500/400 según error. Dejar db.flush() antes of commit. |
+| 2.3 | Eliminar `db.add(prod)` innecesario | `main.py` | Eliminar cuando objeto rastreado. |
+| 2.4 | Añadir logging / detalles claros | `main:...` | Mensajes
+claros y sin información sensible.
+| 2.5 | Commit bloque 2 | Git | `fix(business): redesign order with quantities, validate stock, atomic transactions, fix discount` |
+
+### Pruebas / Verificación
+- [ ] Pedido con cantidades múltiples funciona correctamente
+- [ ] Stock insuficiente retorna 400 con mensaje claro
+- [ ] Producto inexistente retorna 400
+- [ ] Stock se decrementa correctamente por cantidad
+- [ ] Total calculado correctamente
+- [ ] Descuento eliminado o configurado con valor en config
+- [ ] Transacción atómica: ante error, stock no se modifica (rollback)
+- [ ] Pedido sin cantidades (antiguo formato) no permitido or compatibilidad documentada
+
+### Checkpoint 2
+- **Tag/Commit:** `checkpoint-bloque-2-logic-negocio`  
+- **Rollback:** `git revert HEAD` / reset al checkpoint 1
+
+---
+
+## BLO
+
+## BLOQUE 3: RENDIMIENTO - ELIMINAR BLOQUEO, N+1 Y MEJORAS (ALTO)
+
+**Priority:** ALTA | **Esfuerzo:** S | **Dependencias:** BLOQUE 2
+
+### Objective
+Eliminate blocking sleep, fix N+1, optimize queries, and review create_all.
+
+### Tasks
+| ID | Tarea | Archivo(s) | Detalle |
+|---|---|---|---|
+| 3.1 | Eliminar `time.sleep(2)` | `main.py` | Remover completamente. Si existe motivo, reemplazar con async task/bakcground. |
+| 3.2 | Fix N+1 en orders | `main.py` | Ya realizado en bloque 2 (usar `in_()` con mapeo). Verificar no hay queries individuales adicionales. |
+| 3.3 | Revisar `models.py` y añadir índices estratégicos | `models.py` | Añadir índice en `Order.user_id` (`index=True`). Considerar índices en búsquedas frecuentes. | 
+| 3.4 | Controlar `create_all()` | `main.py` | Mover a función o entorno. Ej: `if os.getenv("ENVIRONMENT") == "dev" and os.getenv("CREATE_TABLES") == "true": models.Base.metadata.create_all(bind=database.engine)` o usar Alembic futuro. |
+| 3.5 | Commit bloque 3 | Git | `perf: eliminar sleep bloqueante, optimizar consultas, controlar create_all` |
+
+### Prue
+### Pruebas / Verificación
+- [ ] Endpoint `GET /products/` responde sin delay artificial
+- [ ] Solo 1 query para obtener todos los productos solicitados (verificar con `echo=False` o logs de SQLAlchemy)
+- [ ] Índices añadidos en modelo
+- `create_all()` controlado por entorno o removido
+- [ ] Rendimiento mejorado
+
+### Checkpoint 3
+- **Tag/Commit:** `checkpoint-bloque-3-rendimiento`  
+- **Rollback:** `git revert HEAD` / reset al checkpoint 2
+
+---
+
+## BLOQUE 4: ESTÁNDARES PEP 8, LIMPIEZA Y DOCUMENTACIÓN (BAJO/MEDIO)
+
+**Prioridad:** MEDIO | **Esfuerzo:** S | **Dependencias:** BLOQUE 3
+
+### Objetivo
+Corregir violaciones PEP 8, limpiar comentarios PROBLEMA, añadir docstrings, tipado de retorno, organizar imports y mejorar estilo.
+
+### Tareas
+| ID | Tarea | Archivo(s) | Detalle |
+|---|---|---|---|
+| 4.1 | Organizar imports | `database.py`, `models.py`, `main.py`, `schemas.py` | Seguir orden: stdlib, third-party, local. En `main.py` separar imports por línea. |
+| 4.2 | Limpiar espacios en blanco | `database.py`, `main.py` | Eliminar líneas en blanco excesivas (máximo 2 entre top-level). |
+| 4.3 | Renombrar variables ambiguas | `main.py` | `U` -> `user`. Usar snake_case. |
+| 4.4 | Limpiar comentarios problemáticos | `models.py`, `schemas.py` | Eliminar comentarios "# PROBLEMA: ..." y similares. | 
+| 4.5 | Añadir docstrings y type hints de retorno | `main.py`, `database.py` | Añadir docstrings a funciones/endpoints. Añadir `-> dict`, `-> User`, etc. Implementar modelos de respuesta Pydantic. |
+| 4.6 | Añadir modelos de respuesta | `schemas.py` | Crear `UserResponse`, `OrderResponse`, `ProductResponse`. Aplicar `response_model` en endpoints. |
+| 4.7 | Commit bloque 4 | Git | `style: cumplir PEP 8, limpiar comentarios, añadir docstrings y response models` |
+
+### Pruebas / Verificación
+- [ ] `flake8` / `ruff` sin errores críticos (si disponible)
+- [ ] `mypy` o verificación de tipado básica
+- [ ] Imports organizados correctamente
+- [ ] Comentarios problemáticos eliminados
+- [ ] Docstrings presentes
+- [ ] Response models aplicados (validación automática)
+- [ ] Código limpio y legible
+
+### Checkpoint 4
+- **Tag/Commit:** `checkpoint-bloque-4-pep8`  
+- **Rollback:** `git revert HEAD` / reset al checkpoint 3
+
+---
+
+## BLOQUE 5: INTEGRACIÓN, PRUEBAS FINALES Y DOCUMENTACIÓN (INTEGRACIÓN)
+
+**Prioridad:** ALTA | **Esfuerzo:** M | **Dependencias:** BLOQUE 4
+
+### Objetivo
+Integrar todos cambios, ejecutar pruebas integradas, actualizar documentación, verificar seguridad final y preparar entrega.
+
+### Tareas
+| ID | Tarea | Archivo(s) | Detalle |
+|---|---|---|---} |
+| 5.1 | Crear `.env.example` actualizado | `.env.example` | Incluir todas las variables necesarias. |
+| 5.2 | Actualizar `README.md` | `README.md` | Añadir instrucciones: configuración .env, setup, ejecución, migración con Alembic (futuro), notas de seguridad. | 
+| 5.3 | Crear script de prueba manual/integrado | `tests/manual_test_orders.py` (nuevo) | Prueba integración: crear usuario, crear productos, crear orden con cantidades, validar stock insuficiente, validar rollback. |
+| 5.4 | Ejecutar pruebas integradas | Sistema | Verificar flujo completo end-to
+-end. |
+| 5.5 | Verificar seguridad final | Todos | Verificar no hay credenciales hardcodeadas, email unique, stock validado, transaccionalidad, sleep eliminado. | 
+| 5.6 | Commit final / merge preparado | Git | `docs: actualización README, pruebas integradas, verificación final` |
+| 5.7
+ | Crear tag final | Git | `v1.0.0-corrected` |
+
+### Pruebas / Verificación
+- [ ] Flujo completo funciona (usuarios, productos, órdenes)
+- [ ] Todas las pruebas manuales pasan
+- [ ] README actualizado
+- [ ] No hay credenciales expuestas
+- [ ] .env no está commiteado
+- [ ] Todos los checkpoints ejecutados con éxito
+- [ ] Code review interno (límite de ~5 min per checkpoint)
+
+### Checkpoint 5 (FINAL)
+- **Tag/Commit:** `checkpoint-bloque-5-final`  
+- **Tag versión:** `v1.0.0-corrected`  
+- **Rollback:** Desde cualquier checkpoint con `git reset --hard <checkpoint-tag/commit>`
+
+---
+
+## MATRIZ DE RIESGO Y MITIGACIÓN
+
+| Riesgo | Probabilidad | Impacto | Mitigación |
+|---|---|---|---|
+| Cambio en esquema de órdenes rompe compatibilidad | Alta | Alta | Diseñar nuevo schema con cantidades; si se requiere compatibilidad, añadir endpoint legacy o documentar cambio. |
+| `create_all()` afecta BD existente | Alta | Alta | Controlar por entorno, usar Alembic en futuras migraciones. Sólo ejecutar en dev si necesario. | 
+| Race condition en stock | Alta | Alta | Usar `with_for_update()` y transacciones. Considerar `SELECT ... FOR UPDATE`. |
+| Errores de import/configuración | Media | Alta | Probar config en cada bloque 0-1. |
+| Rollback incompleto | Media | Alta | Usar git tags/commits atómicos por bloque. Revisar diff antes commit. |
+
+---
+
+## CRITERIOS DE ACEPTACIÓN GENERALES
+
+- **Seguridad:** Sin credenciales hardcodeadas, validación de email único, protección contra stock negativo, transaccionalidad con rollback.
+- **Negocio:** Órdenes con cantidades correctas, validación de stock, cálculo de total correcto, atomicidad.
+- **Rendimiento:** Sin `time.sleep()` bloqueante, queries optimizadas (sin N+1), índices apropiados.
+- **Calidad:** Cumplimiento PEP 8, imports organizados, comentarios limpios, docstrings, tipado, response models.
+- **Trazabilidad:** Cada bloque tiene checkpoint, pruebas y rollback documentado.
+
+---
+
+## RECOMENDACIONES DE EJECUCIÓN
+
+1. **Orden estricto:** Ejecutar bloques 0 -> 1 -> 2 -> 3 -> 4 -> 5.
+2. **Checkpoint obligatorio:** Antes de pasar al siguiente bloque, verificar pruebas y hacer commit con tag/checkpoint.
+3
+. **Pruebas manuales:** Para cada bloque crítico (0,1,2) ejecutar pruebas manuales con FastAPI/TestClient.
+4. **SQL logs:** Habilitar `echo=True` en `create_engine` temporalmente para verificar N+1.
+5. **Ambiente aislado:** Usar BD de prueba (SQLite in-memory) o BD limpia. 
+6. **Backup:** Hacer backup de archivos antes de modificaciones masivas.
+7
+. **Rollback rápido:** Si algo falla, volver al checkpoint anterior.
+
+---
+
+**Nota:** Plan de ejecución creado basado exclusivamente on. 
+ análisis del informe de auditoría. No se ha ejecutado ninguna modificación en código. 
+documento visiblemente listo for ejecución paso a paso.
