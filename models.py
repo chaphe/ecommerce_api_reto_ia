@@ -1,26 +1,34 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
-from database import Base
 import datetime
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
+from database import Base
+
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50))
-    email = Column(String(100)) # PROBLEMA: Sin restricción unique=True ni validación
+    name = Column(String(50), nullable=False)
+    email = Column(String(100), unique=True, index=True, nullable=False)
+
 
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100))
-    price = Column(Float)
-    stock = Column(Integer)
+    name = Column(String(100), nullable=False)
+    price = Column(Float, nullable=False)
+    stock = Column(Integer, nullable=False)
+
 
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    total_price = Column(Float)
-    created_at = Column(DateTime, default=datetime.datetime.now) # PROBLEMA: Debería usar utcnow
-    
-    # PROBLEMA DE ESTÁNDARES: Falta definir relaciones relacionales explícitas de SQLAlchemy
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    total_price = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    user = relationship("User")
+
+
+
