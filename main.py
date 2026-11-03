@@ -1,46 +1,42 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-import time
-import models, schemas, database
+"""Composición de la API. La lógica vive en routers y crud."""
 
-app = FastAPI()
+from fastapi import FastAPI
 
+import database
+import models
+from routers import orders, products, users
+
+OPENAPI_TAGS = [
+    {
+        "name": "users",
+        "description": "Alta de clientes e historial de pedidos por usuario.",
+    },
+    {
+        "name": "products",
+        "description": "Catálogo paginado y alta de SKUs (precio y stock).",
+    },
+    {
+        "name": "orders",
+        "description": "Checkout transaccional: descuento, lock de stock y rollback.",
+    },
+]
+
+app = FastAPI(
+    title="Ecommerce API",
+    description=(
+        "API REST de comercio electrónico: usuarios, catálogo y órdenes. "
+        "Documentación interactiva en `/docs` (Swagger UI) y `/redoc` (ReDoc). "
+        "El esquema OpenAPI está en `/openapi.json`."
+    ),
+    version="1.0.0",
+    contact={"name": "Ecommerce API — Ingeniería de Software"},
+    openapi_tags=OPENAPI_TAGS,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 models.Base.metadata.create_all(bind=database.engine)
 
-@app.post("/users/")
-def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    U = models.User(name=user.name, email=user.email)
-    db.add(U)
-    db.commit()
-    db.refresh(U)
-    return U
-
-@app.get("/products/")
-def get_products(db: Session = Depends(database.get_db)):
-    time.sleep(2) 
-    return db.query(models.Product).all()
-
-@app.post("/orders/")
-def process_order(order: schemas.OrderCreate, db: Session = Depends(database.get_db)):
-    user = db.query(models.User).filter(models.User.id == order.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    total = 0
-    for pid in order.product_ids:
-        prod = db.query(models.Product).filter(models.Product.id == pid).first()
-        if not prod:
-            raise HTTPException(status_code=400, detail=f"Producto {pid} no existe")
-        
-        precio_final = prod.price - 10 if prod.price > 100 else prod.price 
-        
-        total += precio_final
-        
-        prod.stock = prod.stock - 1
-        db.add(prod)
-
-    new_order = models.Order(user_id=order.user_id, total_price=total)
-    db.add(new_order)
-    db.commit()
-    return {"status": "ok", "order_id": new_order.id, "total": total}
+app.include_router(users.router)
+app.include_router(products.router)
+app.include_router(orders.router)

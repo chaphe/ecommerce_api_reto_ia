@@ -3,3 +3,8 @@ uvicorn==0.24.0
 pymysql==1.1.0
 sqlalchemy==2.0.23
 pydantic==2.5.2
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+httpx==0.25.2
+pytest==7.4.4
+pytest-cov==4.1.0
