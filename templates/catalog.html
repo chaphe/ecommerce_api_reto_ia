@@ -43,7 +43,7 @@
     <article class="product-card group flex flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-950/5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-800"
       data-name="{{ product.name|lower }}" data-category="{{ category }}" data-price="{{ product.price }}">
       <div class="relative mb-5 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-indigo-100 dark:from-slate-800 dark:to-indigo-950">
-        <span class="text-6xl font-semibold text-indigo-300/70 transition group-hover:scale-110 dark:text-indigo-400/40">{{ product.name[:1]|upper }}</span>
+        {% if product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.name }}" class="h-full w-full object-cover transition group-hover:scale-105">{% else %}<span class="text-6xl font-semibold text-indigo-300/70 transition group-hover:scale-110 dark:text-indigo-400/40">{{ product.name[:1]|upper }}</span>{% endif %}
         {% if product.stock > 0 %}
           <span class="absolute left-3 top-3 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">En stock · {{ product.stock }}</span>
         {% else %}
@@ -53,6 +53,7 @@
       <div class="flex flex-1 flex-col">
         <p class="text-xs font-medium uppercase tracking-wider text-slate-400">{{ category }}</p>
         <h2 class="mt-1 text-lg font-semibold">{{ product.name }}</h2>
+        {% if product.description %}<p class="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{{ product.description }}</p>{% endif %}
         <div class="mt-auto flex items-end justify-between gap-3 pt-5">
           <div>
             <p class="text-xl font-semibold">{{ "%.2f"|format(product.price) }} €</p>
@@ -84,8 +85,7 @@
   <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
     <div class="flex items-start justify-between"><div><p class="text-sm font-semibold text-indigo-500">Último paso</p><h2 class="mt-1 text-2xl font-semibold">Procesar orden</h2></div><button id="close-checkout" class="text-2xl text-slate-400" aria-label="Cerrar">&times;</button></div>
     <form id="checkout-form" class="mt-6 space-y-4">
-      <label class="block text-sm font-medium">ID de usuario<input id="user-id" name="user_id" type="number" min="1" required value="1" class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-950"></label>
-      <p class="text-xs leading-5 text-slate-500">Usa el identificador de un usuario registrado para completar la compra.</p>
+      <p class="rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600 dark:bg-slate-950 dark:text-slate-300">Puedes comprar como visitante. Si inicias sesión, el pedido quedará asociado a tu historial.</p>
       <div id="checkout-error" class="hidden rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"></div>
       <button id="confirm-checkout" class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-60" type="submit">Confirmar compra</button>
     </form>

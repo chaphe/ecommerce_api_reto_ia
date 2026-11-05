@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
 import crud
+import auth
 import database
 import schemas
 
@@ -25,16 +26,36 @@ router = APIRouter(prefix="/users", tags=["users"])
     },
     status_code=200,
 )
-def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+def create_user(
+    user: schemas.AdminUserCreate,
+    admin: auth.AdminUser,
+    csrf: auth.Csrf,
+    db: Session = Depends(database.get_db),
+):
     """Crea un cliente con email único.
 
     Valida el payload con Pydantic v2 y persiste en `users`. Un email
     duplicado se traduce en HTTP 409 para no filtrar detalles del motor SQL.
     """
     try:
-        return crud.create_user(db, user)
+        return crud.create_authenticated_user(db, user)
     except crud.EmailAlreadyRegisteredError:
         raise HTTPException(status_code=409, detail="El email ya está registrado")
+
+
+@router.get("/me", response_model=schemas.UserOut)
+def get_me(user: auth.CurrentUser):
+    return user
+
+
+@router.patch("/me", response_model=schemas.UserOut)
+def update_me(
+    payload: schemas.UserProfileUpdate,
+    user: auth.CurrentUser,
+    csrf: auth.Csrf,
+    db: Session = Depends(database.get_db),
+):
+    return crud.update_user(db, user, schemas.AdminUserUpdate(**payload.model_dump()))
 
 
 @router.get(
@@ -46,6 +67,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     responses=schemas.OPENAPI_ERROR_RESPONSES,
 )
 def get_user_orders(
+    current: auth.CurrentUser,
     user_id: int = Path(..., gt=0, description="Identificador del usuario"),
     db: Session = Depends(database.get_db),
 ):
@@ -55,6 +77,8 @@ def get_user_orders(
     y `products`. Cada elemento incluye `product_names`. Si el `user_id` no
     existe responde 404; si existe sin pedidos, una lista vacía.
     """
+    if current.role != "admin" and current.id != user_id:
+        raise HTTPException(status_code=403, detail="No puedes consultar pedidos de otro usuario")
     history = crud.get_user_order_history(db, user_id)
     if history is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")

@@ -48,6 +48,8 @@ La aplicación sigue una separación en capas. El borde HTTP no ejecuta SQL; el 
 
 Relaciones persistidas: `User` 1—N `Order` 1—N `OrderItem` N—1 `Product`.
 
+La autenticación usa sesiones firmadas en cookies HttpOnly, contraseñas Argon2id y roles `admin`/`buyer`. El catálogo y el checkout de visitante siguen siendo públicos; las mutaciones, el historial y el panel administrativo requieren sesión y autorización. Las operaciones autenticadas que modifican datos requieren `X-CSRF-Token`.
+
 ---
 
 ## Requisitos previos
@@ -98,6 +100,8 @@ cp .env.example .env
 
 `config.py` carga estos valores con **pydantic-settings** (archivo `.env` + variables del proceso). El archivo `.env` está en `.gitignore`.
 
+Además, `SESSION_SECRET` debe ser un secreto aleatorio en despliegue. `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` permiten crear el primer administrador una sola vez; se ignoran cuando ya existe un administrador.
+
 Crear la base en MySQL antes del primer arranque:
 
 ```sql
@@ -105,6 +109,8 @@ CREATE DATABASE ecommerce_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 Al iniciar, FastAPI ejecuta `Base.metadata.create_all` y materializa `users`, `products`, `orders` y `order_items`. En un esquema ya existente, `create_all` **no** altera columnas; hay que recrear o migrar si el modelo cambió.
+
+Para una base existente, ejecutar `alembic upgrade head` antes del despliegue. Los endpoints de autenticación están documentados en `/docs`, incluida la importación CSV/XLSX mediante previsualización y confirmación. `/orders/guest` permite comprar sin cuenta.
 
 ---
 
@@ -156,7 +162,7 @@ Infraestructura inmutable: la API se construye con un **Dockerfile multi-stage**
 | `api` | build local (`ecommerce-api:1.0.0`) | 8000 | — |
 | `db` | `mysql:8` | 3306 | volumen nombrado `mysql_data` |
 
-`api` espera a que `db` esté healthy. Dentro de la red, el hostname de MySQL es **`db`** (no `localhost`). Compose inyecta `DATABASE_URL` apuntando a ese host.
+`api` espera a que `db` esté healthy. Dentro de la red, el hostname de MySQL es **`db`** (no `localhost`). Compose inyecta `DATABASE_URL` apuntando a ese host y no publica MySQL al host por defecto. Las contraseñas de root y de la cuenta de aplicación deben proporcionarse mediante variables de entorno; no hay credenciales débiles por defecto.
 
 Requisitos: Docker Engine + Docker Compose v2.
 
@@ -170,7 +176,7 @@ docker compose up --build -d
 | Swagger | http://127.0.0.1:8000/docs |
 | MySQL (host) | 127.0.0.1:3306 |
 
-Opcional: un `.env` en la raíz con `MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `DISCOUNT_THRESHOLD` y `DISCOUNT_RATE` (defaults: `password123`, `ecommerce_db`, `100`, `0.10`).
+Un `.env` en la raíz debe definir `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD` y puede ajustar `MYSQL_USER`, `MYSQL_DATABASE`, `DISCOUNT_THRESHOLD`, `DISCOUNT_RATE`, `SESSION_SECRET` y las variables de bootstrap.
 
 ```bash
 docker compose logs -f api
