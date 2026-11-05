@@ -100,7 +100,7 @@ cp .env.example .env
 
 `config.py` carga estos valores con **pydantic-settings** (archivo `.env` + variables del proceso). El archivo `.env` está en `.gitignore`.
 
-Además, `SESSION_SECRET` debe ser un secreto aleatorio en despliegue. `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` permiten crear el primer administrador una sola vez; se ignoran cuando ya existe un administrador.
+Además, `SESSION_SECRET` debe ser un secreto aleatorio en despliegue. `SESSION_COOKIE_SECURE=false` es correcto para HTTP local; usa `true` únicamente detrás de HTTPS. `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` permiten crear el primer administrador una sola vez; se ignoran cuando ya existe un administrador.
 
 Crear la base en MySQL antes del primer arranque:
 
@@ -110,7 +110,7 @@ CREATE DATABASE ecommerce_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 Al iniciar, FastAPI ejecuta `Base.metadata.create_all` y materializa `users`, `products`, `orders` y `order_items`. En un esquema ya existente, `create_all` **no** altera columnas; hay que recrear o migrar si el modelo cambió.
 
-Para una base existente, ejecutar `alembic upgrade head` antes del despliegue. Los endpoints de autenticación están documentados en `/docs`, incluida la importación CSV/XLSX mediante previsualización y confirmación. `/orders/guest` permite comprar sin cuenta.
+Para una base existente, ejecutar `alembic upgrade head` antes del despliegue o establecer `DATABASE_AUTO_MIGRATE=true` (el valor por defecto de Docker Compose). En una base nueva, el arranque crea el esquema y registra la revisión actual sin borrar datos. Los endpoints de autenticación están documentados en `/docs`, incluida la importación CSV/XLSX mediante previsualización y confirmación. `/orders/guest` permite comprar sin cuenta.
 
 ---
 
@@ -126,7 +126,7 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 | --- | --- |
 | API | http://127.0.0.1:8000 |
 | Storefront | http://127.0.0.1:8000/ |
-| Historial de pedidos | http://127.0.0.1:8000/orders?user_id=1 |
+| Historial de pedidos | http://127.0.0.1:8000/orders |
 | Swagger UI | http://127.0.0.1:8000/docs |
 | ReDoc | http://127.0.0.1:8000/redoc |
 | OpenAPI JSON | http://127.0.0.1:8000/openapi.json |
@@ -176,7 +176,7 @@ docker compose up --build -d
 | Swagger | http://127.0.0.1:8000/docs |
 | MySQL (host) | 127.0.0.1:3306 |
 
-Un `.env` en la raíz debe definir `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD` y puede ajustar `MYSQL_USER`, `MYSQL_DATABASE`, `DISCOUNT_THRESHOLD`, `DISCOUNT_RATE`, `SESSION_SECRET` y las variables de bootstrap.
+Un `.env` en la raíz debe definir `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD` y puede ajustar `MYSQL_USER`, `MYSQL_DATABASE`, `DISCOUNT_THRESHOLD`, `DISCOUNT_RATE`, `SESSION_SECRET`, `SESSION_COOKIE_SECURE`, `DATABASE_AUTO_MIGRATE` y las variables de bootstrap.
 
 ```bash
 docker compose logs -f api

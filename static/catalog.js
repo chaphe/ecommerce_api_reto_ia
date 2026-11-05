@@ -55,15 +55,33 @@
   document.getElementById("checkout-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const error = document.getElementById("checkout-error");
+    const confirmButton = document.getElementById("confirm-checkout");
     error.classList.add("hidden");
-    const payload = { items: [...cart.values()].map((item) => ({ product_id: item.id, quantity: item.quantity })) };
+    confirmButton.disabled = true;
+    confirmButton.textContent = "Procesando…";
+    const items = [...cart.values()].map((item) => ({ product_id: item.id, quantity: item.quantity }));
     try {
-      const response = await fetch("/orders/guest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const sessionResponse = await fetch("/auth/me");
+      const sessionUser = sessionResponse.ok ? await sessionResponse.json() : null;
+      const endpoint = sessionUser ? "/orders/" : "/orders/guest";
+      const payload = sessionUser ? { user_id: sessionUser.id, items } : { items };
+      const headers = { "Content-Type": "application/json" };
+      if (sessionUser) {
+        const csrfResponse = await fetch("/auth/csrf");
+        const csrf = await csrfResponse.json();
+        headers["X-CSRF-Token"] = csrf.csrf_token;
+      }
+      const response = await fetch(endpoint, { method: "POST", headers, body: JSON.stringify(payload) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "No se pudo procesar la orden.");
       cart.clear(); renderCart(); close(modal); window.showToast(`Orden #${data.id} confirmada`);
-      window.setTimeout(() => window.location.href = "/", 1200);
-    } catch (requestError) { error.textContent = requestError.message; error.classList.remove("hidden"); }
+      window.setTimeout(() => window.location.href = sessionUser ? "/orders" : "/", 1200);
+    } catch (requestError) {
+      error.textContent = requestError.message;
+      error.classList.remove("hidden");
+      confirmButton.disabled = false;
+      confirmButton.textContent = "Confirmar compra";
+    }
   });
   function filterProducts() {
     const term = document.getElementById("product-search").value.toLowerCase().trim();
@@ -85,10 +103,6 @@
     document.getElementById("category-filter").value = "all";
     document.getElementById("price-filter").value = "all";
     filterProducts();
-  });
-  document.getElementById("checkout-form").addEventListener("submit", () => {
-    document.getElementById("confirm-checkout").disabled = true;
-    document.getElementById("confirm-checkout").textContent = "Procesando…";
   });
   renderCart();
 })();

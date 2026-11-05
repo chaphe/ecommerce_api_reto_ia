@@ -26,8 +26,11 @@ class Settings(BaseSettings):
     discount_threshold: float = 100.0
     discount_rate: float = 0.10
     session_secret: str = secrets.token_urlsafe(32)
-    session_cookie_secure: bool = True
+    # Local/Docker development serves HTTP. Set true only when HTTPS terminates
+    # the session cookie's connection.
+    session_cookie_secure: bool = False
     session_max_age: int = 28800
+    database_auto_migrate: bool = False
     bootstrap_admin_email: str | None = None
     bootstrap_admin_password: str | None = None
 

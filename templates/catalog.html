@@ -20,6 +20,9 @@
     </label>
     <select id="category-filter" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-950">
       <option value="all">Todas las categorías</option>
+      {% for category_option in categories %}
+      <option value="{{ category_option.slug }}">{{ category_option.name }}</option>
+      {% endfor %}
       <option value="premium">Premium</option>
       <option value="accessories">Accesorios</option>
       <option value="essentials">Esenciales</option>
@@ -39,7 +42,7 @@
   </div>
   <div id="product-grid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     {% for product in products %}
-    {% set category = "premium" if product.price > 100 else ("accessories" if product.price >= 50 else "essentials") %}
+    {% set category = product.category.slug if product.category else ("premium" if product.price > 100 else ("accessories" if product.price >= 50 else "essentials")) %}
     <article class="product-card group flex flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-950/5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-800"
       data-name="{{ product.name|lower }}" data-category="{{ category }}" data-price="{{ product.price }}">
       <div class="relative mb-5 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-indigo-100 dark:from-slate-800 dark:to-indigo-950">

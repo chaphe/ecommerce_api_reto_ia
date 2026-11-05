@@ -4,6 +4,9 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import inspect
 
 import database
 import models
@@ -47,7 +50,48 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-models.Base.metadata.create_all(bind=database.engine)
+def _migration_config() -> Config:
+    config = Config(str(BASE_DIR / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", get_settings().database_url)
+    return config
+
+
+def _schema_is_current(inspector) -> bool:
+    expected = {
+        "users": {"password_hash", "role", "is_active", "created_at"},
+        "products": {"sku", "description", "image_url", "is_archived", "category_id"},
+        "orders": {"updated_at", "status", "is_archived", "cancelled_at"},
+        "order_items": {"product_name"},
+    }
+    if "categories" not in inspector.get_table_names():
+        return False
+    return all(
+        table in inspector.get_table_names()
+        and columns.issubset({column["name"] for column in inspector.get_columns(table)})
+        for table, columns in expected.items()
+    )
+
+
+def _prepare_database() -> None:
+    """Create fresh schemas or migrate existing schemas without deleting data."""
+    settings = get_settings()
+    if not settings.database_auto_migrate:
+        models.Base.metadata.create_all(bind=database.engine)
+        return
+
+    inspector = inspect(database.engine)
+    tables = set(inspector.get_table_names())
+    config = _migration_config()
+    if not tables:
+        models.Base.metadata.create_all(bind=database.engine)
+        command.stamp(config, "head")
+    elif _schema_is_current(inspector) and "alembic_version" not in tables:
+        command.stamp(config, "head")
+    else:
+        command.upgrade(config, "head")
+
+
+_prepare_database()
 
 
 def _bootstrap_admin() -> None:

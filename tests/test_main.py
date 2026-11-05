@@ -434,3 +434,74 @@ def test_product_export_neutralizes_spreadsheet_formulas(client: TestClient):
     assert response.status_code == 200
     exported = client.get("/products/export?format=csv")
     assert "'=HYPERLINK" in exported.text
+
+
+def test_admin_creation_round_trip_and_public_registration_cannot_escalate(
+    client: TestClient, seed_data
+):
+    registration = client.post(
+        "/auth/register",
+        json={
+            "name": "Buyer",
+            "email": "buyer-roundtrip@test.com",
+            "password": "Buyer-password-123",
+            "role": "admin",
+        },
+    )
+    assert registration.status_code == 201
+    assert registration.json()["role"] == "buyer"
+
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    headers = {"X-CSRF-Token": csrf}
+    user = client.post(
+        "/admin/users/",
+        json={
+            "name": "Admin Created",
+            "email": "admin-created@test.com",
+            "password": "Admin-created-123",
+            "role": "buyer",
+        },
+        headers=headers,
+    )
+    assert user.status_code == 201
+    assert user.json()["role"] == "buyer"
+
+    product = client.post(
+        "/products/",
+        json={
+            "name": "Round-trip product",
+            "sku": "ROUND-001",
+            "description": "Persisted product",
+            "price": 75,
+            "stock": 6,
+        },
+        headers=headers,
+    )
+    assert product.status_code == 200
+    product_id = product.json()["id"]
+    assert client.get("/products/").json()[-1]["id"] == product_id
+    admin_products = client.get("/products/admin", headers=headers).json()["items"]
+    assert next(item for item in admin_products if item["id"] == product_id)["sku"] == "ROUND-001"
+
+
+def test_my_orders_requires_identity_and_never_uses_browser_user_id(client: TestClient, seed_data):
+    client.post("/auth/logout", headers={"X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]})
+    assert client.get("/orders/mine").status_code == 401
+
+    client.post("/auth/login", json={"email": "Ana@test.com", "password": "Ana-password-123"})
+    response = client.get("/orders/mine")
+    assert response.status_code == 200
+    assert response.json()["items"][0]["user_id"] == seed_data["ana"].id
+    assert client.get(f"/users/{seed_data['luis'].id}/orders").status_code == 403
+
+
+def test_web_pages_use_real_authenticated_order_flow(client: TestClient):
+    catalog = client.get("/")
+    orders = client.get("/orders")
+    orders_script = client.get("/static/orders.js")
+    assert catalog.status_code == 200
+    assert orders.status_code == 200
+    assert orders_script.status_code == 200
+    assert 'fetch("/orders/mine")' in orders_script.text
+    assert "history-user-id" not in orders.text
