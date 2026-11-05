@@ -1,7 +1,7 @@
 (function () {
   const config = window.STORE_CONFIG || { discountThreshold: 100, discountRate: 0.1 };
   const money = (value) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(value);
-  const cart = new Map();
+  const cart = new Map(JSON.parse(localStorage.getItem("northstar-cart") || "[]").map((item) => [item.id, item]));
   const drawer = document.getElementById("cart-drawer");
   const modal = document.getElementById("checkout-modal");
   const cartItems = document.getElementById("cart-items");
@@ -25,6 +25,7 @@
     discount.textContent = `-${money(savings)}`;
     total.textContent = money(raw - savings);
     checkout.disabled = !items.length;
+    localStorage.setItem("northstar-cart", JSON.stringify(items));
     cartItems.innerHTML = items.length ? items.map((item) => `<div class="flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><div class="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-indigo-100 font-semibold text-indigo-500 dark:bg-indigo-950">${escapeHtml(item.name[0].toUpperCase())}</div><div class="min-w-0 flex-1"><p class="truncate text-sm font-medium">${escapeHtml(item.name)}</p><p class="text-xs text-slate-500">${money(item.price)} · ${item.quantity} ud.</p></div><div class="flex items-center gap-1"><button class="cart-quantity rounded-md px-2 py-1 text-slate-500 hover:bg-white dark:hover:bg-slate-700" data-id="${item.id}" data-change="-1">−</button><span class="w-4 text-center text-sm">${item.quantity}</span><button class="cart-quantity rounded-md px-2 py-1 text-slate-500 hover:bg-white dark:hover:bg-slate-700" data-id="${item.id}" data-change="1">+</button></div></div>`).join("") : '<div class="flex h-full flex-col items-center justify-center text-center text-slate-500"><span class="text-4xl">∅</span><p class="mt-3 text-sm">Tu carrito está vacío.</p></div>';
   }
   function open(element) { element.classList.remove("hidden"); element.classList.add("flex"); element.setAttribute("aria-hidden", "false"); }
@@ -76,7 +77,18 @@
       card.classList.toggle("hidden", !matches); if (matches) visible += 1;
     });
     document.getElementById("empty-results").classList.toggle("hidden", visible !== 0);
+    document.getElementById("results-count").textContent = `${visible} producto${visible === 1 ? "" : "s"} encontrado${visible === 1 ? "" : "s"}`;
   }
   ["product-search", "category-filter", "price-filter"].forEach((id) => document.getElementById(id).addEventListener("input", filterProducts));
+  document.getElementById("clear-filters").addEventListener("click", () => {
+    document.getElementById("product-search").value = "";
+    document.getElementById("category-filter").value = "all";
+    document.getElementById("price-filter").value = "all";
+    filterProducts();
+  });
+  document.getElementById("checkout-form").addEventListener("submit", () => {
+    document.getElementById("confirm-checkout").disabled = true;
+    document.getElementById("confirm-checkout").textContent = "Procesando…";
+  });
   renderCart();
 })();

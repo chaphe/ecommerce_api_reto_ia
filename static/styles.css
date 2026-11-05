@@ -2,3 +2,37 @@ html { color-scheme: light; }
 html.dark { color-scheme: dark; }
 body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 button, a, input, select { transition: all 160ms ease; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgb(129 140 248 / .45); outline-offset: 2px; }
+.admin-nav-item { display: flex; align-items: center; gap: .75rem; border-radius: .75rem; padding: .7rem .8rem; color: rgb(100 116 139); font-size: .875rem; font-weight: 500; }
+.admin-nav-item:hover, .admin-nav-active { background: rgb(238 242 255); color: rgb(79 70 229); }
+.dark .admin-nav-item:hover, .dark .admin-nav-active { background: rgb(30 27 75); color: rgb(165 180 252); }
+.metric-card, .admin-panel { border: 1px solid rgb(226 232 240); border-radius: 1rem; background: white; padding: 1.25rem; box-shadow: 0 1px 2px rgb(15 23 42 / .03); }
+.dark .metric-card, .dark .admin-panel { border-color: rgb(30 41 59); background: rgb(15 23 42); }
+.metric-card p, .metric-card span { display: block; color: rgb(100 116 139); font-size: .8rem; }
+.metric-card strong { display: block; margin: .55rem 0 .25rem; font-size: 1.7rem; letter-spacing: -.04em; }
+.metric-icon { display: grid; height: 2.25rem; width: 2.25rem; place-items: center; border-radius: .7rem; font-weight: 700; }
+.panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.panel-heading h2 { font-size: 1rem; font-weight: 650; }
+.panel-heading p { margin-top: .25rem; color: rgb(100 116 139); font-size: .8rem; }
+.section-badge { border-radius: 999px; background: rgb(220 252 231); padding: .35rem .6rem; color: rgb(21 128 61); font-size: .7rem; font-weight: 600; }
+.admin-table { width: 100%; text-align: left; font-size: .85rem; }
+.admin-table th { border-bottom: 1px solid rgb(226 232 240); padding: .7rem .5rem; color: rgb(100 116 139); font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.admin-table td { border-bottom: 1px solid rgb(241 245 249); padding: .85rem .5rem; color: rgb(71 85 105); }
+.admin-table td small, .list-row small { display: block; margin-top: .2rem; color: rgb(148 163 184); font-size: .72rem; }
+.dark .admin-table th { border-color: rgb(30 41 59); }
+.dark .admin-table td { border-color: rgb(30 41 59); color: rgb(203 213 225); }
+.admin-panel label { display: block; color: rgb(71 85 105); font-size: .78rem; font-weight: 600; }
+.dark .admin-panel label { color: rgb(203 213 225); }
+.admin-panel label input { display: block; width: 100%; margin-top: .4rem; border: 1px solid rgb(226 232 240); border-radius: .7rem; background: rgb(248 250 252); padding: .7rem .8rem; font-size: .875rem; font-weight: 400; outline: none; }
+.dark .admin-panel label input { border-color: rgb(51 65 85); background: rgb(2 6 23); }
+.list-row, .segment-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-radius: .75rem; padding: .65rem .5rem; }
+.list-row:hover { background: rgb(248 250 252); }
+.dark .list-row:hover { background: rgb(30 41 59); }
+.list-row strong { display: block; font-size: .85rem; }
+.avatar { display: grid; height: 2rem; width: 2rem; place-items: center; border-radius: .65rem; background: rgb(224 231 255); color: rgb(79 70 229); font-size: .8rem; font-weight: 700; }
+.segment-row { border: 1px solid rgb(241 245 249); padding: .8rem; font-size: .85rem; }
+.dark .segment-row { border-color: rgb(30 41 59); }
+.empty-state { padding: 2.5rem 1rem; text-align: center; color: rgb(100 116 139); }
+.empty-state span { display: block; font-size: 1.8rem; color: rgb(129 140 248); }
+.empty-state strong { display: block; margin-top: .6rem; color: rgb(51 65 85); font-size: .9rem; }
+.dark .empty-state strong { color: rgb(226 232 240); }

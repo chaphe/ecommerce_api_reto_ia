@@ -39,16 +39,10 @@ def create_product(
     tags=["products"],
     responses=schemas.OPENAPI_ERROR_RESPONSES,
 )
-async def get_products(
+def get_products(
     db: Session = Depends(database.get_db),
     limit: int = Query(10, ge=1, le=100, description="Tamaño de página (máx. 100)"),
     offset: int = Query(0, ge=0, description="Registros a saltar"),
 ):
-    """Lista el catálogo con paginación SQL (`LIMIT` / `OFFSET`).
-
-    El handler es `async` y cede el event loop con `asyncio.sleep` (no usa
-    `time.sleep`, que bloquearía el worker). `limit` fuera de 1–100 u
-    `offset` negativo produce HTTP 422 de validación FastAPI.
-    """
-    await asyncio.sleep(2)
+    """Lista el catálogo con paginación SQL (`LIMIT` / `OFFSET`)."""
     return crud.list_products(db, limit=limit, offset=offset)

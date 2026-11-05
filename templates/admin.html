@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Administración · Northstar Store{% endblock %}
+{% block content %}
+<div class="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-950">
+  <div class="mx-auto flex max-w-[1440px] flex-col lg:flex-row">
+    <aside class="border-b border-slate-200 bg-white px-5 py-5 dark:border-slate-800 dark:bg-slate-900 lg:min-h-[calc(100vh-73px)] lg:w-64 lg:border-b-0 lg:border-r lg:px-4">
+      <div class="mb-5 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</div>
+      <nav class="grid grid-cols-2 gap-1 lg:block" aria-label="Navegación administrativa">
+        <a href="#overview" class="admin-nav-item admin-nav-active"><span>▦</span> Resumen</a>
+        <a href="#products" class="admin-nav-item"><span>□</span> Productos</a>
+        <a href="#orders" class="admin-nav-item"><span>↗</span> Órdenes</a>
+        <a href="#users" class="admin-nav-item"><span>○</span> Usuarios</a>
+        <a href="#segments" class="admin-nav-item"><span>◈</span> Segmentos</a>
+      </nav>
+      <div class="mt-8 hidden rounded-2xl bg-slate-50 p-4 text-xs leading-5 text-slate-500 dark:bg-slate-950 lg:block">Los indicadores de este panel se calculan directamente desde el catálogo y las órdenes persistidas.</div>
+    </aside>
+    <main class="min-w-0 flex-1 px-5 py-8 lg:px-10">
+      <div id="overview" class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div><p class="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-indigo-500">Control center</p><h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Resumen de la tienda</h1><p class="mt-2 text-slate-500 dark:text-slate-400">Una vista clara de la operación actual.</p></div>
+        <a href="/" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900">Ver storefront</a>
+      </div>
+      <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+        <div class="metric-card"><div class="metric-icon bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300">€</div><p>Ingresos registrados</p><strong>{{ "%.2f"|format(revenue) }} €</strong><span>Acumulado de órdenes</span></div>
+        <div class="metric-card"><div class="metric-icon bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">↗</div><p>Órdenes</p><strong>{{ orders_count }}</strong><span>Pedidos persistidos</span></div>
+        <div class="metric-card"><div class="metric-icon bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300">□</div><p>Productos</p><strong>{{ products_count }}</strong><span>{{ stock_units }} unidades en stock</span></div>
+        <div class="metric-card"><div class="metric-icon bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-300">!</div><p>Atención</p><strong>{{ low_stock_count }}</strong><span>Productos con stock bajo</span></div>
+      </section>
+      <div class="mt-8 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <section id="orders" class="admin-panel"><div class="panel-heading"><div><h2>Órdenes recientes</h2><p>Últimas operaciones registradas</p></div><span class="section-badge">En vivo</span></div>{% if recent_orders %}<div class="overflow-x-auto"><table class="admin-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Artículos</th><th>Total</th></tr></thead><tbody>{% for order in recent_orders %}<tr><td class="font-semibold">#{{ order.id }}<small>{{ order.created_at.strftime("%d %b %Y") }}</small></td><td>{{ order.user.name }}</td><td>{{ order.items|length }}</td><td class="font-semibold">{{ "%.2f"|format(order.total_price) }} €</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state"><span>◎</span><strong>Aún no hay órdenes</strong><p>Las nuevas compras aparecerán aquí.</p></div>{% endif %}</section>
+        <section id="products" class="admin-panel"><div class="panel-heading"><div><h2>Nuevo producto</h2><p>Amplía tu catálogo sin salir del panel</p></div></div><form id="admin-product-form" class="space-y-4"><label>Nombre<input name="name" required maxlength="100" placeholder="Ej. Monitor Studio"></label><div class="grid grid-cols-2 gap-3"><label>Precio<input name="price" type="number" min="0.01" step="0.01" required placeholder="0.00"></label><label>Stock<input name="stock" type="number" min="0" required placeholder="0"></label></div><div id="admin-form-message" class="hidden rounded-xl px-3 py-2 text-sm"></div><button class="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-950 dark:hover:bg-indigo-200" type="submit">Crear producto</button></form></section>
+      </div>
+      <div class="mt-6 grid gap-6 xl:grid-cols-2">
+        <section id="users" class="admin-panel"><div class="panel-heading"><div><h2>Usuarios</h2><p>{{ users_count }} usuarios registrados</p></div><a href="/docs" class="text-sm font-medium text-indigo-500">API →</a></div>{% if users %}<div class="space-y-1">{% for user in users %}<div class="list-row"><span class="avatar">{{ user.name[:1]|upper }}</span><div class="min-w-0 flex-1"><strong>{{ user.name }}</strong><small>{{ user.email }}</small></div><span class="text-xs text-slate-400">#{{ user.id }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state"><span>○</span><strong>No hay usuarios todavía</strong></div>{% endif %}</section>
+        <section id="segments" class="admin-panel"><div class="panel-heading"><div><h2>Catálogo por segmentos</h2><p>Clasificación visual basada en el precio actual</p></div></div><div class="space-y-3">{% for label, amount, color in [("Premium", products|selectattr("price", "gt", 100)|list|length, "indigo"), ("Accesorios", products|selectattr("price", "ge", 50)|selectattr("price", "le", 100)|list|length, "amber"), ("Esenciales", products|selectattr("price", "lt", 50)|list|length, "emerald")] %}<div class="segment-row"><div class="flex items-center gap-3"><span class="h-2.5 w-2.5 rounded-full bg-{{ color }}-500"></span><span>{{ label }}</span></div><strong>{{ amount }}</strong></div>{% endfor %}</div></section>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='admin.js') }}"></script>{% endblock %}

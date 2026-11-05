@@ -8,11 +8,11 @@
 {% block content %}
 <section class="mx-auto max-w-7xl px-5 pb-16 pt-12 lg:px-8">
   <div class="mb-10 max-w-3xl">
-    <p class="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-500">Selección curada</p>
+    <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-300"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Selección curada</div>
     <h1 class="text-4xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-5xl">Todo lo que necesitas,<br><span class="text-indigo-500">sin ruido.</span></h1>
     <p class="mt-4 max-w-xl text-lg leading-8 text-slate-500 dark:text-slate-400">Explora productos seleccionados para construir mejores experiencias, con precios transparentes y checkout instantáneo.</p>
   </div>
-  <div class="mb-8 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[1fr_auto_auto]">
+  <div class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[1fr_auto_auto_auto]">
     <label class="relative">
       <span class="sr-only">Buscar productos</span>
       <input id="product-search" type="search" placeholder="Buscar por nombre..." class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none ring-indigo-500 transition focus:ring-2 dark:border-slate-700 dark:bg-slate-950">
@@ -30,7 +30,9 @@
       <option value="50-100">50 € — 100 €</option>
       <option value="over-100">Más de 100 €</option>
     </select>
+    <button id="clear-filters" type="button" class="rounded-xl px-4 py-3 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white">Limpiar</button>
   </div>
+  <div class="mb-5 flex items-center justify-between text-sm text-slate-500"><span id="results-count">{{ products|length }} productos disponibles</span><span class="hidden sm:inline">Precios transparentes · Checkout seguro</span></div>
   <div id="empty-results" class="hidden rounded-2xl border border-dashed border-slate-300 py-16 text-center dark:border-slate-700">
     <p class="font-medium">No encontramos productos con esos filtros.</p>
     <p class="mt-1 text-sm text-slate-500">Prueba con otra búsqueda o restablece los filtros.</p>
@@ -85,7 +87,7 @@
       <label class="block text-sm font-medium">ID de usuario<input id="user-id" name="user_id" type="number" min="1" required value="1" class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-950"></label>
       <p class="text-xs leading-5 text-slate-500">Usa el identificador de un usuario registrado para completar la compra.</p>
       <div id="checkout-error" class="hidden rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"></div>
-      <button class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-500" type="submit">Confirmar compra</button>
+      <button id="confirm-checkout" class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-500 disabled:cursor-wait disabled:opacity-60" type="submit">Confirmar compra</button>
     </form>
   </div>
 </div>

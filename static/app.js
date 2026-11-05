@@ -1,10 +1,10 @@
 (function () {
   const root = document.documentElement;
   const savedTheme = localStorage.getItem("northstar-theme");
-  if (savedTheme === "light") root.classList.remove("dark");
+  if (savedTheme === "dark" || (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) root.classList.add("dark");
   const button = document.getElementById("theme-toggle");
   const icon = document.getElementById("theme-icon");
-  const updateIcon = () => { if (icon) icon.textContent = root.classList.contains("dark") ? "☼" : "☾"; };
+  const updateIcon = () => { if (icon) icon.textContent = root.classList.contains("dark") ? "☼" : "◐"; };
   updateIcon();
   button?.addEventListener("click", () => {
     root.classList.toggle("dark");

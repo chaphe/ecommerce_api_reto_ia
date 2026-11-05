@@ -4,6 +4,7 @@ from collections import OrderedDict
 from typing import Optional
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 import models
@@ -67,6 +68,28 @@ def list_products(db: Session, limit: int, offset: int) -> list[models.Product]:
         .limit(limit)
         .all()
     )
+
+
+def get_admin_snapshot(db: Session) -> dict:
+    """Construye los indicadores administrativos desde datos persistidos."""
+    recent_orders = (
+        db.query(models.Order)
+        .options(joinedload(models.Order.user), selectinload(models.Order.items))
+        .order_by(models.Order.created_at.desc(), models.Order.id.desc())
+        .limit(6)
+        .all()
+    )
+    return {
+        "users_count": db.query(func.count(models.User.id)).scalar() or 0,
+        "products_count": db.query(func.count(models.Product.id)).scalar() or 0,
+        "orders_count": db.query(func.count(models.Order.id)).scalar() or 0,
+        "revenue": db.query(func.coalesce(func.sum(models.Order.total_price), 0.0)).scalar() or 0.0,
+        "stock_units": db.query(func.coalesce(func.sum(models.Product.stock), 0)).scalar() or 0,
+        "low_stock_count": db.query(func.count(models.Product.id)).filter(models.Product.stock <= 5).scalar() or 0,
+        "users": db.query(models.User).order_by(models.User.id.desc()).limit(8).all(),
+        "products": db.query(models.Product).order_by(models.Product.id.desc()).limit(8).all(),
+        "recent_orders": recent_orders,
+    }
 
 
 def get_user_order_history(
