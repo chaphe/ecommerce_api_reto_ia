@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ "Crear cuenta" if mode == "register" else "Iniciar sesión" }} · Northstar Store{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-md px-5 py-16">
+  <div class="mb-8"><p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-indigo-500">Northstar account</p><h1 class="text-3xl font-semibold tracking-tight">{{ "Crea tu cuenta" if mode == "register" else "Bienvenido de nuevo" }}</h1><p class="mt-2 text-slate-500">{{ "Guarda tus pedidos y compra más rápido." if mode == "register" else "Accede a tus pedidos y preferencias." }}</p></div>
+  <form id="auth-form" class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    {% if mode == "register" %}<label>Nombre<input name="name" required minlength="1" maxlength="50"></label>{% endif %}
+    <label>Email<input name="email" type="email" required></label>
+    <label>Contraseña<input name="password" type="password" minlength="10" required></label>
+    <div id="auth-error" class="hidden rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700"></div>
+    <button class="w-full rounded-xl bg-slate-950 px-4 py-3 font-medium text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-950" type="submit">{{ "Crear cuenta" if mode == "register" else "Iniciar sesión" }}</button>
+  </form>
+  <p class="mt-5 text-center text-sm text-slate-500"><a class="font-medium text-indigo-500" href="{{ "/login" if mode == "register" else "/register" }}">{{ "Ya tengo una cuenta" if mode == "register" else "Crear una cuenta" }}</a></p>
+</section>
+{% endblock %}
+{% block scripts %}<script>window.AUTH_MODE = "{{ mode }}";</script><script src="{{ url_for('static', path='auth.js') }}"></script>{% endblock %}

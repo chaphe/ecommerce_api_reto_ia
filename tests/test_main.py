@@ -63,15 +63,15 @@ def test_get_user_orders_returns_nested_product_names(client: TestClient, seed_d
 
 
 def test_get_user_orders_empty_history_and_404(client: TestClient, seed_data):
-    # Arrange / Act
+    client.post("/auth/login", json={"email": "luis@test.com", "password": "Luis-password-123"})
     empty = client.get(f"/users/{seed_data['luis'].id}/orders")
     missing = client.get("/users/99999/orders")
 
     # Assert
     assert empty.status_code == 200
     assert empty.json() == []
-    assert missing.status_code == 404
-    assert missing.json()["detail"] == "Usuario no encontrado"
+    assert missing.status_code == 403
+    assert "otro usuario" in missing.json()["detail"]
 
 
 def test_process_order_applies_percentage_discount(client: TestClient, seed_data):
@@ -131,8 +131,8 @@ def test_process_order_user_not_found(client: TestClient, seed_data):
     )
 
     # Assert
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Usuario no encontrado"
+    assert response.status_code == 403
+    assert "otro usuario" in response.json()["detail"]
 
 
 def test_process_order_missing_product(client: TestClient, seed_data):
@@ -173,7 +173,9 @@ def test_process_order_internal_error_rolls_back(client: TestClient, seed_data, 
 
 def test_create_user_and_duplicate_email(client: TestClient):
     # Arrange
-    payload = {"name": "Marta", "email": "marta@test.com"}
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    client.headers.update({"X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]})
+    payload = {"name": "Marta", "email": "marta@test.com", "password": "Marta-password-123", "role": "buyer"}
 
     # Act
     created = client.post("/users/", json=payload)
@@ -239,7 +241,8 @@ def test_create_product(client: TestClient):
     # Arrange
     payload = {"name": "Monitor", "price": 300.0, "stock": 4}
 
-    # Act
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    client.headers.update({"X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]})
     response = client.post("/products/", json=payload)
 
     # Assert
@@ -252,9 +255,182 @@ def test_create_product(client: TestClient):
 
 
 def test_admin_dashboard_renders_live_metrics(client: TestClient, seed_data):
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
     response = client.get("/admin")
 
     assert response.status_code == 200
     assert "Resumen de la tienda" in response.text
     assert "8" in response.text
     assert "Órdenes recientes" in response.text
+
+
+def test_buyer_cannot_access_admin_or_other_order_history(client: TestClient, seed_data):
+    assert client.get("/admin").status_code == 403
+    assert client.get(f"/users/{seed_data['luis'].id}/orders").status_code == 403
+
+
+def test_auth_register_login_profile_and_csrf(client: TestClient):
+    client.post("/auth/logout", headers={"X-CSRF-Token": client.get("/auth/csrf").json()["csrf_token"]})
+    registered = client.post(
+        "/auth/register",
+        json={"name": "Marta", "email": "marta-auth@test.com", "password": "Marta-password-123"},
+    )
+    assert registered.status_code == 201
+    assert client.get("/auth/me").json()["email"] == "marta-auth@test.com"
+    assert client.patch("/users/me", json={"name": "Changed", "email": "marta-auth@test.com"}).status_code == 403
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    updated = client.patch(
+        "/users/me",
+        json={"name": "Changed", "email": "marta-auth@test.com"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert updated.status_code == 200
+    client.post("/auth/logout", headers={"X-CSRF-Token": csrf})
+    assert client.get("/auth/me").status_code == 401
+
+
+def test_guest_checkout_is_available(client: TestClient, seed_data):
+    response = client.post(
+        "/orders/guest",
+        json={"items": [{"product_id": seed_data["products"]["Alpha"].id, "quantity": 1}]},
+    )
+    assert response.status_code == 200
+    assert response.json()["user_id"] is None
+
+
+def test_admin_can_preview_and_confirm_csv_import(client: TestClient):
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    preview = client.post(
+        "/admin/users/import/preview",
+        files={"file": ("users.csv", b"name,email,password,role\nNew User,new-user@test.com,New-password-123,buyer\n", "text/csv")},
+    )
+    assert preview.status_code == 200
+    rows = preview.json()["valid_rows"]
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    confirmed = client.post("/admin/users/import/confirm", json=rows, headers={"X-CSRF-Token": csrf})
+    assert confirmed.status_code == 201
+    assert confirmed.json()[0]["email"] == "new-user@test.com"
+
+
+def test_admin_product_category_import_export_and_bulk_operations(client: TestClient, seed_data):
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    headers = {"X-CSRF-Token": csrf}
+
+    category = client.post(
+        "/categories/",
+        json={"name": "Studio", "slug": "studio"},
+        headers=headers,
+    )
+    assert category.status_code == 201
+    category_id = category.json()["id"]
+
+    created = client.post(
+        "/products/",
+        json={
+            "name": "Camera",
+            "sku": "CAM-001",
+            "price": 120,
+            "stock": 3,
+            "category_id": category_id,
+            "description": "Camera de estudio",
+        },
+        headers=headers,
+    )
+    assert created.status_code == 200
+    product_id = created.json()["id"]
+
+    updated = client.patch(
+        f"/products/{product_id}",
+        json={"price": 130, "stock": 5},
+        headers=headers,
+    )
+    assert updated.status_code == 200
+    assert updated.json()["price"] == 130
+
+    bulk = client.post(
+        "/products/bulk",
+        json={"product_ids": [product_id], "stock_delta": -2},
+        headers=headers,
+    )
+    assert bulk.status_code == 200
+    assert client.get(f"/categories/{category_id}/products").json()["items"][0]["id"] == product_id
+
+    preview = client.post(
+        "/products/import/preview",
+        files={"file": ("products.csv", b"name,sku,price,stock,category_slug\nMic,MIC-001,40,8,studio\n", "text/csv")},
+    )
+    assert preview.status_code == 200
+    imported = client.post(
+        "/products/import/confirm",
+        json=preview.json()["valid_rows"],
+        headers=headers,
+    )
+    assert imported.status_code == 201
+    assert imported.json()["created"] == 1
+
+    exported = client.get("/products/export?format=csv")
+    assert exported.status_code == 200
+    assert "CAM-001" in exported.text
+
+
+def test_order_detail_status_and_historical_product_name(client: TestClient, seed_data):
+    client.post("/auth/login", json={"email": "ana@test.com", "password": "Ana-password-123"})
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    order_id = seed_data["order"].id
+    detail = client.get(f"/orders/{order_id}")
+    assert detail.status_code == 200
+    assert detail.json()["status"] == "confirmed"
+    client.post("/auth/logout", headers={"X-CSRF-Token": csrf})
+
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    changed = client.patch(
+        f"/orders/{order_id}",
+        json={"status": "processing"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert changed.status_code == 200
+    assert changed.json()["status"] == "processing"
+
+
+def test_admin_cancellation_restores_inventory_once(client: TestClient, seed_data):
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    laptop = seed_data["products"]["Laptop"]
+    before = laptop.stock
+    response = client.patch(
+        f"/orders/{seed_data['order'].id}",
+        json={"status": "cancelled", "cancellation_reason": "Customer request"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert response.status_code == 200
+    catalog = {item["name"]: item for item in client.get("/products/").json()}
+    assert catalog["Laptop"]["stock"] == before + 1
+    repeated = client.patch(
+        f"/orders/{seed_data['order'].id}",
+        json={"status": "cancelled"},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert repeated.status_code == 200
+    assert {item["name"]: item for item in client.get("/products/").json()}["Laptop"]["stock"] == before + 1
+
+
+def test_buyer_cannot_use_commercial_admin_endpoints(client: TestClient):
+    assert client.get("/products/admin").status_code == 403
+    assert client.get("/products/export").status_code == 403
+    assert client.get("/orders/admin").status_code == 403
+    assert client.post("/categories/", json={"name": "Blocked", "slug": "blocked"}).status_code == 403
+
+
+def test_product_export_neutralizes_spreadsheet_formulas(client: TestClient):
+    client.post("/auth/login", json={"email": "admin@test.com", "password": "Admin-password-123"})
+    csrf = client.get("/auth/csrf").json()["csrf_token"]
+    response = client.post(
+        "/products/",
+        json={"name": "=HYPERLINK(\"https://example.test\")", "sku": "FORMULA-001", "price": 1, "stock": 1},
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert response.status_code == 200
+    exported = client.get("/products/export?format=csv")
+    assert "'=HYPERLINK" in exported.text

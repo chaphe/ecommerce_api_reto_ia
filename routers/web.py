@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 import crud
+import auth
 import database
 from config import get_settings
 
@@ -34,8 +35,23 @@ def orders_history(request: Request):
     return templates.TemplateResponse("orders.html", {"request": request})
 
 
+@router.get("/login", include_in_schema=False)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request, "mode": "login"})
+
+
+@router.get("/register", include_in_schema=False)
+def register_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request, "mode": "register"})
+
+
+@router.get("/profile", include_in_schema=False)
+def profile_page(request: Request):
+    return templates.TemplateResponse("profile.html", {"request": request})
+
+
 @router.get("/admin", include_in_schema=False)
-def admin_dashboard(request: Request, db: Session = Depends(database.get_db)):
+def admin_dashboard(request: Request, admin: auth.AdminUser, db: Session = Depends(database.get_db)):
     snapshot = crud.get_admin_snapshot(db)
     return templates.TemplateResponse(
         "admin.html",

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Mi perfil · Northstar Store{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-xl px-5 py-12">
+  <div class="mb-8"><p class="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-indigo-500">Cuenta</p><h1 class="text-3xl font-semibold tracking-tight">Mi perfil</h1><p class="mt-2 text-slate-500">Mantén actualizados tus datos de cuenta.</p></div>
+  <form id="profile-form" class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <label>Nombre<input id="profile-name" name="name" required></label>
+    <label>Email<input id="profile-email" name="email" type="email" required></label>
+    <div id="profile-message" class="hidden rounded-xl px-3 py-2 text-sm"></div>
+    <button class="w-full rounded-xl bg-slate-950 px-4 py-3 font-medium text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-950" type="submit">Guardar cambios</button>
+  </form>
+  <button id="logout-button" class="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium hover:border-rose-300 hover:text-rose-600 dark:border-slate-700" type="button">Cerrar sesión</button>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', path='profile.js') }}"></script>{% endblock %}

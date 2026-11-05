@@ -4,6 +4,7 @@ import os
 
 # Debe ejecutarse antes de importar config/database: evita pegarle a MySQL de .env.
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["SESSION_COOKIE_SECURE"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,7 @@ from sqlalchemy.pool import StaticPool
 
 import database
 import models
+import auth
 from main import app
 
 # StaticPool: todas las sesiones comparten el mismo :memory: (si no, cada
@@ -59,9 +61,10 @@ def db_session():
 @pytest.fixture
 def seed_data(db_session):
     """Mocks de usuarios, productos (con/sin stock y con/sin descuento) y una orden."""
-    ana = models.User(name="Ana", email="ana@test.com")
-    luis = models.User(name="Luis", email="luis@test.com")
-    db_session.add_all([ana, luis])
+    ana = models.User(name="Ana", email="ana@test.com", password_hash=auth.hash_password("Ana-password-123"), role="buyer")
+    luis = models.User(name="Luis", email="luis@test.com", password_hash=auth.hash_password("Luis-password-123"), role="buyer")
+    admin = models.User(name="Admin", email="admin@test.com", password_hash=auth.hash_password("Admin-password-123"), role="admin")
+    db_session.add_all([ana, luis, admin])
     db_session.flush()
 
     catalog = [
@@ -105,6 +108,7 @@ def seed_data(db_session):
     return {
         "ana": ana,
         "luis": luis,
+        "admin": admin,
         "products": by_name,
         "order": order,
     }
@@ -122,5 +126,8 @@ def client(db_session, seed_data):
 
     app.dependency_overrides[database.get_db] = _override_get_db
     with TestClient(app) as test_client:
+        login = test_client.post("/auth/login", json={"email": "ana@test.com", "password": "Ana-password-123"})
+        csrf = test_client.get("/auth/csrf").json()["csrf_token"]
+        test_client.headers.update({"X-CSRF-Token": csrf})
         yield test_client
     app.dependency_overrides.clear()

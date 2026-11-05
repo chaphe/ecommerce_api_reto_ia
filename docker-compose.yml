@@ -9,9 +9,13 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-password123}@db:3306/${MYSQL_DATABASE:-ecommerce_db}
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-ecommerce_app}:${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}@db:3306/${MYSQL_DATABASE:-ecommerce_db}
       DISCOUNT_THRESHOLD: ${DISCOUNT_THRESHOLD:-100}
       DISCOUNT_RATE: ${DISCOUNT_RATE:-0.10}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET must be set}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
@@ -23,10 +27,10 @@ services:
     container_name: ecommerce_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password123}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set}
+      MYSQL_USER: ${MYSQL_USER:-ecommerce_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-ecommerce_db}
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command:

@@ -56,13 +56,13 @@
     event.preventDefault();
     const error = document.getElementById("checkout-error");
     error.classList.add("hidden");
-    const payload = { user_id: Number(document.getElementById("user-id").value), items: [...cart.values()].map((item) => ({ product_id: item.id, quantity: item.quantity })) };
+    const payload = { items: [...cart.values()].map((item) => ({ product_id: item.id, quantity: item.quantity })) };
     try {
-      const response = await fetch("/orders/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await fetch("/orders/guest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "No se pudo procesar la orden.");
       cart.clear(); renderCart(); close(modal); window.showToast(`Orden #${data.id} confirmada`);
-      window.setTimeout(() => window.location.href = `/orders?user_id=${payload.user_id}`, 1200);
+      window.setTimeout(() => window.location.href = "/", 1200);
     } catch (requestError) { error.textContent = requestError.message; error.classList.remove("hidden"); }
   });
   function filterProducts() {
