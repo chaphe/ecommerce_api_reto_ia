@@ -32,3 +32,12 @@ def catalog(request: Request, db: Session = Depends(database.get_db)):
 @router.get("/orders", include_in_schema=False)
 def orders_history(request: Request):
     return templates.TemplateResponse("orders.html", {"request": request})
+
+
+@router.get("/admin", include_in_schema=False)
+def admin_dashboard(request: Request, db: Session = Depends(database.get_db)):
+    snapshot = crud.get_admin_snapshot(db)
+    return templates.TemplateResponse(
+        "admin.html",
+        {"request": request, **snapshot},
+    )

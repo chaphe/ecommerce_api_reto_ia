@@ -249,3 +249,12 @@ def test_create_product(client: TestClient):
     assert body["price"] == 300.0
     assert body["stock"] == 4
     assert body["id"] > 0
+
+
+def test_admin_dashboard_renders_live_metrics(client: TestClient, seed_data):
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+    assert "Resumen de la tienda" in response.text
+    assert "8" in response.text
+    assert "Órdenes recientes" in response.text

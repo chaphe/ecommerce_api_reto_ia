@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" class="dark">
+<html lang="es">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,14 +22,21 @@
         <div class="flex items-center gap-2">
           <a href="/" class="hidden rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 sm:block">Catálogo</a>
           <a href="/orders" class="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Mis pedidos</a>
+          <a href="/admin" class="hidden rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 md:block">Administración</a>
           {% block nav_actions %}{% endblock %}
           <button id="theme-toggle" type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Cambiar tema">
-            <span id="theme-icon" aria-hidden="true">☼</span>
+            <span id="theme-icon" aria-hidden="true">◐</span>
           </button>
         </div>
       </nav>
     </header>
     <main>{% block content %}{% endblock %}</main>
+    <footer class="border-t border-slate-200 bg-white px-5 py-8 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-950 lg:px-8">
+      <div class="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <span class="font-medium text-slate-700 dark:text-slate-300">Northstar Store</span>
+        <span>Una experiencia de compra simple y clara.</span>
+      </div>
+    </footer>
     <div id="toast" class="pointer-events-none fixed bottom-5 right-5 z-50 translate-y-4 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white opacity-0 shadow-xl transition-all dark:bg-white dark:text-slate-900" role="status"></div>
     <script src="{{ url_for('static', path='app.js') }}"></script>
     {% block scripts %}{% endblock %}
