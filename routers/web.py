@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 import crud
 import auth
 import database
+import models
 from config import get_settings
 
 router = APIRouter(tags=["web"])
@@ -19,11 +20,18 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "
 def catalog(request: Request, db: Session = Depends(database.get_db)):
     settings = get_settings()
     products = crud.list_products(db, limit=100, offset=0)
+    categories = (
+        db.query(models.Category)
+        .filter(models.Category.is_active.is_(True))
+        .order_by(models.Category.name.asc())
+        .all()
+    )
     return templates.TemplateResponse(
         "catalog.html",
         {
             "request": request,
             "products": products,
+            "categories": categories,
             "discount_threshold": settings.discount_threshold,
             "discount_rate": settings.discount_rate,
         },

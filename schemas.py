@@ -17,6 +17,8 @@ class UserOut(BaseModel):
     id: int
     name: str
     email: str
+    role: str = "buyer"
+    is_active: bool = True
 
 
 class UserListOut(BaseModel):
@@ -75,8 +77,12 @@ class ImportResultOut(BaseModel):
 # ===== Productos =====
 class ProductCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    sku: Optional[str] = Field(default=None, max_length=64)
+    description: Optional[str] = None
+    image_url: Optional[str] = Field(default=None, max_length=500)
     price: float = Field(gt=0)
     stock: int = Field(ge=0)
+    category_id: Optional[int] = Field(default=None, gt=0)
 
 
 class ProductUpdate(BaseModel):
@@ -94,8 +100,13 @@ class ProductOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
+    sku: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
     price: float
     stock: int
+    category_id: Optional[int] = None
+    is_archived: bool = False
 
 
 class ProductListOut(BaseModel):
@@ -120,7 +131,7 @@ class ProductImportRow(BaseModel):
     stock: int = Field(default=0, ge=0)
     description: Optional[str] = None
     image_url: Optional[str] = Field(default=None, max_length=500)
-    category_id: Optional[int] = None
+    category_slug: Optional[str] = Field(default=None, max_length=80)
 
 
 class ProductImportPreviewOut(BaseModel):
@@ -174,15 +185,19 @@ class OrderItemOut(BaseModel):
     product_id: int
     quantity: int
     unit_price: float
+    product_name: Optional[str] = None
 
 
 class OrderOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
-    user_id: int
+    user_id: Optional[int] = None
     total_price: float
     created_at: datetime
     items: List[OrderItemOut]
+    status: str = "confirmed"
+    is_archived: bool = False
+    cancelled_at: Optional[datetime] = None
 
 
 class OrderListOut(BaseModel):
@@ -193,8 +208,12 @@ class OrderListOut(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    status: Optional[str] = None
+    status: Optional[str] = Field(
+        default=None,
+        pattern="^(confirmed|processing|shipped|completed|cancelled)$",
+    )
     is_archived: Optional[bool] = None
+    cancellation_reason: Optional[str] = Field(default=None, max_length=255)
 
 
 # ===== Errores =====
