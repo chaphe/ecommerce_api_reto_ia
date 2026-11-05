@@ -10,7 +10,7 @@ El dominio cubre tres agregados:
 | **Producto** | SKU con precio de lista y existencias. |
 | **Orden** | Cabecera (`orders`) + detalle (`order_items`) con cantidad y precio unitario ya descontado. |
 
-Público objetivo: equipos backend que consuman el servicio desde un storefront, un BFF o un canal interno. La especificación viva está en Swagger UI (`/docs`) y ReDoc (`/redoc`).
+Público objetivo: equipos backend que consuman el servicio desde un storefront, un BFF o un canal interno. La aplicación incluye un storefront server-rendered con Jinja2, Tailwind CSS y Flowbite (`/`) además de la vista de historial (`/orders`). La especificación viva está en Swagger UI (`/docs`) y ReDoc (`/redoc`).
 
 ---
 
@@ -119,6 +119,8 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 | Recurso | URL |
 | --- | --- |
 | API | http://127.0.0.1:8000 |
+| Storefront | http://127.0.0.1:8000/ |
+| Historial de pedidos | http://127.0.0.1:8000/orders?user_id=1 |
 | Swagger UI | http://127.0.0.1:8000/docs |
 | ReDoc | http://127.0.0.1:8000/redoc |
 | OpenAPI JSON | http://127.0.0.1:8000/openapi.json |

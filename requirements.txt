@@ -1,4 +1,5 @@
 fastapi==0.104.1
+jinja2==3.1.2
 uvicorn==0.24.0
 pymysql==1.1.0
 sqlalchemy==2.0.23

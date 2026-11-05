@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Catálogo · Northstar Store{% endblock %}
+{% block nav_actions %}
+<button id="open-cart" type="button" class="relative rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500">
+  Carrito <span id="cart-count" class="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-xs">0</span>
+</button>
+{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-7xl px-5 pb-16 pt-12 lg:px-8">
+  <div class="mb-10 max-w-3xl">
+    <p class="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-500">Selección curada</p>
+    <h1 class="text-4xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-5xl">Todo lo que necesitas,<br><span class="text-indigo-500">sin ruido.</span></h1>
+    <p class="mt-4 max-w-xl text-lg leading-8 text-slate-500 dark:text-slate-400">Explora productos seleccionados para construir mejores experiencias, con precios transparentes y checkout instantáneo.</p>
+  </div>
+  <div class="mb-8 grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:grid-cols-[1fr_auto_auto]">
+    <label class="relative">
+      <span class="sr-only">Buscar productos</span>
+      <input id="product-search" type="search" placeholder="Buscar por nombre..." class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none ring-indigo-500 transition focus:ring-2 dark:border-slate-700 dark:bg-slate-950">
+      <span class="absolute left-3 top-3 text-slate-400">⌕</span>
+    </label>
+    <select id="category-filter" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-950">
+      <option value="all">Todas las categorías</option>
+      <option value="premium">Premium</option>
+      <option value="accessories">Accesorios</option>
+      <option value="essentials">Esenciales</option>
+    </select>
+    <select id="price-filter" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-950">
+      <option value="all">Cualquier precio</option>
+      <option value="under-50">Menos de 50 €</option>
+      <option value="50-100">50 € — 100 €</option>
+      <option value="over-100">Más de 100 €</option>
+    </select>
+  </div>
+  <div id="empty-results" class="hidden rounded-2xl border border-dashed border-slate-300 py-16 text-center dark:border-slate-700">
+    <p class="font-medium">No encontramos productos con esos filtros.</p>
+    <p class="mt-1 text-sm text-slate-500">Prueba con otra búsqueda o restablece los filtros.</p>
+  </div>
+  <div id="product-grid" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {% for product in products %}
+    {% set category = "premium" if product.price > 100 else ("accessories" if product.price >= 50 else "essentials") %}
+    <article class="product-card group flex flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-950/5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-800"
+      data-name="{{ product.name|lower }}" data-category="{{ category }}" data-price="{{ product.price }}">
+      <div class="relative mb-5 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-slate-100 to-indigo-100 dark:from-slate-800 dark:to-indigo-950">
+        <span class="text-6xl font-semibold text-indigo-300/70 transition group-hover:scale-110 dark:text-indigo-400/40">{{ product.name[:1]|upper }}</span>
+        {% if product.stock > 0 %}
+          <span class="absolute left-3 top-3 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">En stock · {{ product.stock }}</span>
+        {% else %}
+          <span class="absolute left-3 top-3 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-700 dark:bg-rose-950 dark:text-rose-300">Agotado</span>
+        {% endif %}
+      </div>
+      <div class="flex flex-1 flex-col">
+        <p class="text-xs font-medium uppercase tracking-wider text-slate-400">{{ category }}</p>
+        <h2 class="mt-1 text-lg font-semibold">{{ product.name }}</h2>
+        <div class="mt-auto flex items-end justify-between gap-3 pt-5">
+          <div>
+            <p class="text-xl font-semibold">{{ "%.2f"|format(product.price) }} €</p>
+            {% if product.price > discount_threshold %}<p class="text-xs text-emerald-600 dark:text-emerald-400">-{{ (discount_rate * 100)|round|int }}% en checkout</p>{% endif %}
+          </div>
+          <button type="button" class="add-to-cart rounded-lg px-3 py-2 text-sm font-medium transition {% if product.stock > 0 %}bg-slate-900 text-white hover:bg-indigo-600 dark:bg-white dark:text-slate-900 dark:hover:bg-indigo-200{% else %}cursor-not-allowed bg-slate-100 text-slate-400 dark:bg-slate-800{% endif %}" data-id="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}" data-stock="{{ product.stock }}" {% if product.stock == 0 %}disabled{% endif %}>Agregar</button>
+        </div>
+      </div>
+    </article>
+    {% else %}
+    <p class="col-span-full rounded-2xl border border-dashed border-slate-300 py-16 text-center text-slate-500 dark:border-slate-700">El catálogo está vacío.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<div id="cart-drawer" class="fixed inset-0 z-40 hidden" aria-hidden="true">
+  <div id="cart-backdrop" class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"></div>
+  <aside class="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl dark:bg-slate-900" aria-label="Carrito de compras">
+    <div class="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-slate-800"><div><h2 class="text-lg font-semibold">Tu carrito</h2><p id="cart-subtitle" class="text-sm text-slate-500">0 productos</p></div><button id="close-cart" class="rounded-lg p-2 text-2xl leading-none text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Cerrar carrito">&times;</button></div>
+    <div id="cart-items" class="flex-1 space-y-3 overflow-y-auto p-6"></div>
+    <div class="border-t border-slate-200 p-6 dark:border-slate-800">
+      <div class="space-y-2 text-sm"><div class="flex justify-between text-slate-500"><span>Subtotal</span><strong id="cart-subtotal" class="text-slate-900 dark:text-slate-100">0,00 €</strong></div><div class="flex justify-between text-emerald-600"><span>Descuento</span><strong id="cart-discount">-0,00 €</strong></div><div class="flex justify-between border-t border-slate-200 pt-3 text-base font-semibold dark:border-slate-700"><span>Total</span><strong id="cart-total">0,00 €</strong></div></div>
+      <button id="checkout-button" class="mt-5 w-full rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40" disabled>Continuar al checkout</button>
+    </div>
+  </aside>
+</div>
+
+<div id="checkout-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" aria-hidden="true">
+  <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+    <div class="flex items-start justify-between"><div><p class="text-sm font-semibold text-indigo-500">Último paso</p><h2 class="mt-1 text-2xl font-semibold">Procesar orden</h2></div><button id="close-checkout" class="text-2xl text-slate-400" aria-label="Cerrar">&times;</button></div>
+    <form id="checkout-form" class="mt-6 space-y-4">
+      <label class="block text-sm font-medium">ID de usuario<input id="user-id" name="user_id" type="number" min="1" required value="1" class="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none ring-indigo-500 focus:ring-2 dark:border-slate-700 dark:bg-slate-950"></label>
+      <p class="text-xs leading-5 text-slate-500">Usa el identificador de un usuario registrado para completar la compra.</p>
+      <div id="checkout-error" class="hidden rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"></div>
+      <button class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-500" type="submit">Confirmar compra</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.STORE_CONFIG = { discountThreshold: {{ discount_threshold }}, discountRate: {{ discount_rate }} };
+</script>
+<script src="{{ url_for('static', path='catalog.js') }}"></script>
+{% endblock %}
